@@ -13,16 +13,16 @@ class Betfair {
      * @param {string} [password] - Betfair password
      * @param {boolean} [keepAlive=false] - Keep token alive till logout
      */
-    constructor(appKey, username, password, keepAlive) {
+    constructor(appKey, username, password, cert, key, keepAlive) {
         this.appKey = appKey;
         this.authKey = '';
         this.username = username || '';
         this.password = password || '';
+        this.cert = cert || '',
+        this.key = key || '',
         this.keepAlive = keepAlive || false;
         this.keepAliveTimeout = 3600000;
         this.locale = 'en';
-
-        this.login();
     }
 
     /**
@@ -33,11 +33,14 @@ class Betfair {
     login (username, password, keepAlive) {
         this.keepAlive = keepAlive || this.keepAlive;
 
-        return this.request('identitysso.betfair.com', '/api/login', 'application/x-www-form-urlencoded', {
+        const path = this.cert && this.key ? '/api/certlogin' : '/api/login';
+        const host = this.cert && this.key ? 'identitysso-cert.betfair.com': 'identitysso.betfair.com';
+
+        return this.request(host, path , 'application/x-www-form-urlencoded', {
             username: username || this.username,
             password: password || this.password
-        }).then((response) => {
-            this.authKey = response.token;
+        }, true).then((response) => {
+            this.authKey = response.sessionToken;
             if (this.keepAlive) {
                 setTimeout(() => {
                     this.keepAliveReset();
@@ -429,7 +432,7 @@ class Betfair {
             "method": "SportsAPING/v1.0/" + method,
             "params": params
         }];
-        return this.request('developers.betfair.com', '/api.betfair.com/exchange/betting/json-rpc/v1', 'text/plain;charset=UTF-8', JSON.stringify(def));
+        return this.request('api.betfair.com', '/exchange/betting/json-rpc/v1', 'text/plain;charset=UTF-8', JSON.stringify(def));
     }
     
     /**
@@ -443,7 +446,7 @@ class Betfair {
             "method": "AccountAPING/v1.0/" + method,
             "params": params
         }];
-        return this.request('developers.betfair.com', '/api.betfair.com/exchange/account/json-rpc/v1', 'text/plain;charset=UTF-8', JSON.stringify(def));
+        return this.request('api.betfair.com', '/exchange/account/json-rpc/v1', 'text/plain;charset=UTF-8', JSON.stringify(def));
     }
 
     /**
@@ -453,7 +456,7 @@ class Betfair {
      * @param {string} contentType - content type of payload
      * @param {object} params - payload
      */
-    request (host, path, contentType, params) {
+    request (host, path, contentType, params, useCertificate) {
         return new Promise((resolve, reject) => {
             var options = {
                     host: host,
@@ -467,6 +470,12 @@ class Betfair {
                     }
                 },
                 httpReq;
+
+            if(useCertificate && this.cert && this.key) {
+                options.cert = this.cert;
+                options.key = this.key;
+                options.agent = new https.Agent(options);
+            }
 
             if (contentType === 'application/x-www-form-urlencoded') {
                 params = querystring.stringify(params);
