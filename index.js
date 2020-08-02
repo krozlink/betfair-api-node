@@ -161,7 +161,7 @@ class Betfair {
     */
     listRunnerBook (marketId, selectionId, opts = {}) {
         return this.devApi('listRunnerBook', Object.assign({
-            "marketIds": marketId,
+            "marketId": marketId,
             "selectionId": selectionId,
             "locale": this.locale
         }, opts)).then((response) => {
