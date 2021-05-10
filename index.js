@@ -488,6 +488,14 @@ class Betfair {
 
             httpReq = https.request(options, function (res) {
                 var data = '';
+                if (!res.statusCode.toString().startsWith("2")) {
+                    reject({
+                        statusCode: res.statusCode,
+                        statusMessage: res.statusMessage,
+                    });
+                    return;
+                }
+
                 res.setEncoding('utf8');
                 res.on('data', function (chunk) {
                     data += chunk;
